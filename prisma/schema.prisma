@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("seller") // Can be "admin" or "seller"
+  createdAt DateTime @default(now())
+}
+
+enum BannerType {
+  GENERAL
+  DISCOUNT
+  HOMEPAGE
+}
+
+enum BannerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Banner {
+  id        Int          @id @default(autoincrement())
+  imageUrl  String
+  link      String
+  position  Int
+  type      BannerType
+  status    BannerStatus
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  title       String
+  bodyHtml    String
+  vendor      String
+  productType String
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants    Variant[]
+  images      Image[]
+  tags        String    @default("[]") // Store product tags as a JSON string
+  isFeatured  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Variant {
+  id            Int         @id @default(autoincrement())
+  productId     Int
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title         String
+  price         Float
+  discount      Boolean     @default(false)
+  discountPrice Float?
+  sku           String      @unique
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+}
+
+model Image {
+  id         Int       @id @default(autoincrement())
+  productId  Int?
+  product    Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  src        String // This will store local file paths
+  Category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  title     String
+  link      String? // Optional link (e.g., for frontend navigation)
+  products  Product[]
+  images    Image[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   
+  phone     String?  
+  orders    Order[]
+  cart      Cart?    @relation(name: "CustomerCart")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shipping {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @unique
+  order     Order    @relation(name: "OrderShipping", fields: [orderId], references: [id], onDelete: Cascade)
+  carrier   String?
+  service   String?
+  weight    Float?
+  length    Float?
+  width     Float?
+  height    Float?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  country   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  customerId Int?       
+  customer   Customer?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+  payments   Payment[]
+  subtotal   Float?
+  tax        Float?
+  total      Float?
+  shipping   Shipping?   @relation(name: "OrderShipping")
+  status     String      @default("pending") // e.g., pending, completed, failed
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId Int
+  variant   Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Float
+}
+
+model Cart {
+  id         Int        @id @default(autoincrement())
+  sessionId  String?    @unique // For guest carts
+  customerId Int?       @unique // For registered users
+  customer   Customer?  @relation(name: "CustomerCart", fields: [customerId], references: [id], onDelete: SetNull)
+  cartItems  CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  cartId    Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId Int
+  variant   Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method    String   @default("COD")
+  status    String   @default("pending")
+  amount    Float
+  createdAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+  CREDIT_CARD
+  PAYPAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
