@@ -18,7 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/mob/home/banner', bannerRoutes);
 app.use('/api/banners', bannerRoutes);
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static('/home/ubuntu/uploads'));
 app.use(sessionMiddleware);
 
 app.use(guestMiddleware);

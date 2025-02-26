@@ -41,7 +41,7 @@ const bannerCreateSchema = Joi.object({
       }
   
       // Generate image URL (relative path)
-      const imageUrl = `/uploads/${req.file.filename}`;
+      const imageUrl = `/home/ubuntu/uploads/${req.file.filename}`;
   
       // Create banner
       const banner = await prisma.banner.create({
@@ -83,7 +83,7 @@ const bannerCreateSchema = Joi.object({
       if (req.body.position !== undefined) data.position = parseInt(req.body.position);
       if (req.body.type !== undefined) data.type = req.body.type.toUpperCase();
       if (req.body.status !== undefined) data.status = req.body.status.toUpperCase();
-      if (req.file) data.imageUrl = `/uploads/${req.file.filename}`;
+      if (req.file) data.imageUrl = `/home/ubuntu/uploads/${req.file.filename}`;
   
       // Update banner
       const updatedBanner = await prisma.banner.update({
