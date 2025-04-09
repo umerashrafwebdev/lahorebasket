@@ -12,17 +12,25 @@ import sessionMiddleware from './src/middlewares/session.js';
 import guestMiddleware from './src/middlewares/guest.js';
 import session from 'express-session';
 import searchRouter from './src/routes/search.routes.js';
+import subcategoryRoutes from './src/routes/subcategoryRoutes.js';
+import cors from "cors";
+import cookieParser from 'cookie-parser';
 const app = express();
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/mob/home/banner', bannerRoutes);
 app.use('/api/banners', bannerRoutes);
-app.use('/uploads', express.static('/home/ubuntu/uploads'));
+app.use('/uploads', express.static('uploads'));
 app.use(sessionMiddleware);
-
+app.use(cors({
+  origin: ["http://localhost:3000"], // Allow frontend
+  credentials: true, // Allow cookies
+}));
+app.use(cookieParser());
 app.use(guestMiddleware);
 app.use(express.json());
+app.use("/api/subcategories", subcategoryRoutes);
 app.use('/api/products', productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/customers", customerRouter);

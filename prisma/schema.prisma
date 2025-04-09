@@ -36,21 +36,27 @@ model Banner {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 }
-
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+}
 model Product {
-  id          Int       @id @default(autoincrement())
-  title       String
-  bodyHtml    String
-  vendor      String
-  productType String
-  categoryId  Int?
-  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  variants    Variant[]
-  images      Image[]
-  tags        String    @default("[]") // Store product tags as a JSON string
-  isFeatured  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            Int          @id @default(autoincrement())
+  title         String
+  status        ProductStatus @default(DRAFT)
+  bodyHtml      String
+  vendor        String
+  productType   String
+  categoryId    Int?
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategoryId Int?         // Nullable subcategory reference
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
+  variants      Variant[]
+  images        Image[]
+  tags          String       @default("[]")
+  isFeatured    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model Variant {
@@ -62,6 +68,8 @@ model Variant {
   discount      Boolean     @default(false)
   discountPrice Float?
   sku           String      @unique
+  cost          Float?      // Added nullable cost field
+  quantity      Int?        // Added nullable quantity field
   cartItems     CartItem[]
   orderItems    OrderItem[]
 }
@@ -76,13 +84,25 @@ model Image {
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  title     String
-  link      String? // Optional link (e.g., for frontend navigation)
-  products  Product[]
-  images    Image[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           Int          @id @default(autoincrement())
+  title        String
+  link         String?     
+  products     Product[]
+  images       Image[]
+  subCategories SubCategory[] // Added relation to SubCategory
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// New SubCategory model
+model SubCategory {
+  id         Int       @id @default(autoincrement())
+  title      String
+  categoryId Int
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products   Product[] // SubCategory can have products
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Customer {

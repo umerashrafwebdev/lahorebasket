@@ -21,28 +21,31 @@ export const addCategory = async (req, res) => {
       data: {
         title,
         link,
+        images: {
+          create: imageUrls,
       },
-      include: { images: true },
+      },
+      include: {  images: true },
     });
 
-    // Create images if any were uploaded
-    if (imageUrls.length > 0) {
-      const createdImages = await prisma.image.createMany({
-        data: imageUrls,
-      });
+    // // Create images if any were uploaded
+    // if (imageUrls.length > 0) {
+    //   const createdImages = await prisma.image.createMany({
+    //     data: imageUrls,
+    //   });
 
-      // Link images to the category
-      await prisma.image.updateMany({
-        where: {
-          id: {
-            in: createdImages.ids,
-          },
-        },
-        data: {
-          categoryId: category.id,
-        },
-      });
-    }
+    //   // Link images to the category
+    //   await prisma.image.updateMany({
+    //     where: {
+    //       id: {
+    //         in: createdImages.ids,
+    //       },
+    //     },
+    //     data: {
+    //       categoryId: category.id,
+    //     },
+    //   });
+    // }
 
     res.status(201).json({ category });
   } catch (error) {

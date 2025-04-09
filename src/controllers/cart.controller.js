@@ -305,4 +305,10 @@ const calculateCartTotals = async (items) => {
   };
 const calculateTax = (subtotal) => {
   return subtotal * 0; // 5% tax rate example
-};
+}; 
+
+
+
+
+
+
