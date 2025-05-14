@@ -24,8 +24,9 @@ app.use('/api/banners', bannerRoutes);
 app.use('/uploads', express.static('uploads'));
 app.use(sessionMiddleware);
 app.use(cors({
-  origin: ["http://localhost:3000"], // Allow frontend
-  credentials: true, // Allow cookies
+  origin: '*', // Allow all origins for testing; replace with 'http://localhost:3000' or your frontend URL in production
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type'],
 }));
 app.use(cookieParser());
 app.use(guestMiddleware);

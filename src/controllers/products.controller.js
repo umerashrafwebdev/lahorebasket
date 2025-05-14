@@ -42,7 +42,7 @@ export const addProduct = async (req, res) => {
 
     // Store local image paths
     const imageUrls = imageFiles ? imageFiles.map((file) => ({
-      src: `/uploads/${file.filename}`,
+      src: `/Uploads/${file.filename}`,
     })) : [];
 
     // Create product
@@ -67,7 +67,7 @@ export const addProduct = async (req, res) => {
         },
         tags: Array.isArray(tags) ? JSON.stringify(tags) : "[]",
         isFeatured: isFeatured === "true" || isFeatured === true,
-        status: productStatus, // Added status field
+        status: productStatus,
         images: {
           create: imageUrls,
         },
@@ -103,7 +103,7 @@ export const getProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) }, // Fixed typo: MOTION -> id
+      where: { id: parseInt(id) },
       include: {
         variants: true,
         images: true,
@@ -122,6 +122,41 @@ export const getProduct = async (req, res) => {
   }
 };
 
+// 🟢 Get Product by Variant ID
+export const getProductByVariantId = async (req, res) => {
+  try {
+    const { variantId } = req.params;
+
+    // Find the variant and its associated product
+    const variant = await prisma.variant.findUnique({
+      where: { id: parseInt(variantId) },
+      include: {
+        product: {
+          include: {
+            variants: true,
+            images: true,
+            category: true,
+            subCategory: true,
+          },
+        },
+      },
+    });
+
+    if (!variant) {
+      return res.status(404).json({ error: "Variant not found" });
+    }
+
+    if (!variant.product) {
+      return res.status(404).json({ error: "Product not found for this variant" });
+    }
+
+    res.status(200).json({ product: variant.product });
+  } catch (error) {
+    console.error('Error fetching product by variant ID:', error);
+    res.status(500).json({ error: "Failed to fetch product by variant ID", details: error.message });
+  }
+};
+
 // 🟢 Update Product
 export const updateProduct = async (req, res) => {
   try {
@@ -136,7 +171,7 @@ export const updateProduct = async (req, res) => {
       variants,
       tags,
       isFeatured,
-      status, // Added status
+      status,
     } = req.body;
 
     // Validate required fields
@@ -163,7 +198,7 @@ export const updateProduct = async (req, res) => {
         where: { id: parseInt(categoryId) },
       });
       if (!categoryExists) {
-        return res.status(400).json({ error: "Invalid categoryId: Category not термfound" });
+        return res.status(400).json({ error: "Invalid categoryId: Category not found" });
       }
     }
 
@@ -184,7 +219,7 @@ export const updateProduct = async (req, res) => {
     // Store local image paths (only if images are uploaded)
     const imageFiles = req.files;
     const imageUrls = imageFiles ? imageFiles.map((file) => ({
-      src: `/uploads/${file.filename}`,
+      src: `/Uploads/${file.filename}`,
     })) : [];
 
     // Update product
@@ -199,11 +234,11 @@ export const updateProduct = async (req, res) => {
         subCategoryId: subCategoryId ? parseInt(subCategoryId) : null,
         tags: Array.isArray(tags) ? JSON.stringify(tags) : "[]",
         isFeatured: isFeatured === "true" || isFeatured === true,
-        status: productStatus, // Added status field
+        status: productStatus,
         images: imageUrls.length ? { create: imageUrls } : undefined,
         ...(variants && {
           variants: {
-            deleteMany: {}, // Delete existing variants
+            deleteMany: {},
             create: variants.map((variant) => ({
               title: variant.title,
               price: parseFloat(variant.price),

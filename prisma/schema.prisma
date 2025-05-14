@@ -19,6 +19,7 @@ enum BannerType {
   GENERAL
   DISCOUNT
   HOMEPAGE
+  FOURINONE
 }
 
 enum BannerStatus {
@@ -75,14 +76,16 @@ model Variant {
 }
 
 model Image {
-  id         Int       @id @default(autoincrement())
-  productId  Int?
-  product    Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  src        String // This will store local file paths
-  Category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId Int?
+  id            Int          @id @default(autoincrement())
+  productId     Int?
+  product       Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  src           String
+  categoryId    Int?
+  category      Category?    @relation(fields: [categoryId], references: [id])
+  subCategoryId Int?         // Foreign key for SubCategory
+  subCategory   SubCategory? @relation("SubCategoryImages", fields: [subCategoryId], references: [id], onDelete: Cascade) // Matches SubCategory's images relation
+  @@index([productId, categoryId, subCategoryId])
 }
-
 model Category {
   id           Int          @id @default(autoincrement())
   title        String
@@ -99,10 +102,12 @@ model SubCategory {
   id         Int       @id @default(autoincrement())
   title      String
   categoryId Int
+  images     Image[]   @relation("SubCategoryImages") // Explicit relation name
   category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  products   Product[] // SubCategory can have products
+  products   Product[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  @@index([categoryId])
 }
 
 model Customer {

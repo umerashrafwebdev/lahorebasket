@@ -1,31 +1,41 @@
-// subcategoryController.js
 import prisma from "../db/index.js";
 
 // 🟢 Add a New SubCategory
 export const addSubCategory = async (req, res) => {
   try {
     const { title, categoryId } = req.body;
+    const imageFiles = req.files; // Uploaded images
 
     // Ensure required fields are provided
     if (!title || !categoryId) {
       return res.status(400).json({ error: "Title and categoryId are required" });
     }
 
-    // Check if the parent category exists
-    const categoryExists = await prisma.category.findUnique({
+    // Validate category existence
+    const category = await prisma.category.findUnique({
       where: { id: parseInt(categoryId) },
     });
-    if (!categoryExists) {
-      return res.status(404).json({ error: "Parent category not found" });
+    if (!category) {
+      return res.status(404).json({ error: "Category not found" });
     }
+
+    // Store local image paths
+    const imageUrls = imageFiles
+      ? imageFiles.map((file) => ({
+          src: `/uploads/${file.filename}`, // Save relative path for images
+        }))
+      : [];
 
     // Create subcategory
     const subCategory = await prisma.subCategory.create({
       data: {
         title,
         categoryId: parseInt(categoryId),
+        images: {
+          create: imageUrls,
+        },
       },
-      include: { category: true }, // Include parent category in response
+      include: { images: true, category: true },
     });
 
     res.status(201).json({ subCategory });
@@ -38,7 +48,7 @@ export const addSubCategory = async (req, res) => {
 export const getSubCategories = async (req, res) => {
   try {
     const subCategories = await prisma.subCategory.findMany({
-      include: { category: true, products: true }, // Include related category and products
+      include: { images: true, category: true },
     });
     res.status(200).json({ subCategories });
   } catch (error) {
@@ -52,7 +62,7 @@ export const getSubCategory = async (req, res) => {
     const { id } = req.params;
     const subCategory = await prisma.subCategory.findUnique({
       where: { id: parseInt(id) },
-      include: { category: true, products: true }, // Include related data
+      include: { images: true, category: true },
     });
 
     if (!subCategory) {
@@ -70,38 +80,41 @@ export const updateSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, categoryId } = req.body;
+    const imageFiles = req.files;
 
-    // Validate required fields
-    if (!id || !title) {
-      return res.status(400).json({ error: "ID and title are required" });
-    }
-
-    // Check if subcategory exists
-    const existingSubCategory = await prisma.subCategory.findUnique({
+    // Validate subcategory existence
+    const subCategory = await prisma.subCategory.findUnique({
       where: { id: parseInt(id) },
     });
-    if (!existingSubCategory) {
+    if (!subCategory) {
       return res.status(404).json({ error: "SubCategory not found" });
     }
 
-    // If categoryId is provided, ensure it exists
+    // Validate category existence if categoryId is provided
     if (categoryId) {
-      const categoryExists = await prisma.category.findUnique({
+      const category = await prisma.category.findUnique({
         where: { id: parseInt(categoryId) },
       });
-      if (!categoryExists) {
-        return res.status(404).json({ error: "Parent category not found" });
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
       }
     }
 
-    // Update subcategory
+    // Store local image paths (only if images are uploaded)
+    const imageUrls = imageFiles
+      ? imageFiles.map((file) => ({
+          src: `/uploads/${file.filename}`, // Save relative path for images
+        }))
+      : [];
+
     const updatedSubCategory = await prisma.subCategory.update({
       where: { id: parseInt(id) },
       data: {
         title,
-        categoryId: categoryId ? parseInt(categoryId) : existingSubCategory.categoryId, // Keep existing if not provided
+        categoryId: categoryId ? parseInt(categoryId) : undefined,
+        images: imageUrls.length ? { create: imageUrls } : undefined,
       },
-      include: { category: true },
+      include: { images: true, category: true },
     });
 
     res.status(200).json({ subCategory: updatedSubCategory });
@@ -115,7 +128,7 @@ export const deleteSubCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if subcategory exists
+    // Validate subcategory existence
     const subCategory = await prisma.subCategory.findUnique({
       where: { id: parseInt(id) },
     });

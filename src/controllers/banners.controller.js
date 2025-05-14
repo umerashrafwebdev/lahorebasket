@@ -1,107 +1,111 @@
 import prisma from '../db/index.js';
-
 import Joi from 'joi';
 import path from 'path';
-// Get all banners
+
 export const getBanners = async (req, res) => {
     try {
         const banners = await prisma.banner.findMany();
         res.json({ banners });
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch banners" });
+        res.status(500).json({ error: "Failed to fetch banners", details: error.message });
     }
 };
 
-// Add a new banner
 const bannerCreateSchema = Joi.object({
     link: Joi.string().allow('').optional(),
     position: Joi.number().integer().min(0).required(),
-    type: Joi.string().valid('general', 'discount', 'homepage').required(),
+    type: Joi.string().valid('general', 'discount', 'homepage', 'fourinone').required(),
     status: Joi.string().valid('active', 'inactive').required(),
-  });
-  
-  const bannerUpdateSchema = Joi.object({
+});
+
+const bannerUpdateSchema = Joi.object({
     link: Joi.string().allow('').optional(),
     position: Joi.number().integer().min(0).optional(),
-    type: Joi.string().valid('general', 'discount', 'homepage').optional(),
+    type: Joi.string().valid('general', 'discount', 'homepage', 'fourinone').optional(),
     status: Joi.string().valid('active', 'inactive').optional(),
-  });
-  
-  export const addBanner = async (req, res) => {
-    try {
-      // Validate image upload
-      if (!req.file) {
-        return res.status(400).json({ error: 'Image is required' });
+});
+
+export const addBanner = async (req, res) => {
+  try {
+      console.log('req.body:', req.body);
+      console.log('req.files:', req.files);
+
+      if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ error: 'At least one image is required' });
       }
-  
-      // Validate request body
+
       const { error } = bannerCreateSchema.validate(req.body);
       if (error) {
-        return res.status(400).json({ errors: error.details });
+          return res.status(400).json({ error: 'Validation failed', details: error.details });
       }
-  
-      // Generate image URL (relative path)
-      const imageUrl = `/home/ubuntu/uploads/${req.file.filename}`;
-  
-      // Create banner
-      const banner = await prisma.banner.create({
-        data: {
+
+      const imageUrl = path.join('/uploads', req.files[0].filename);
+
+      const bannerData = {
           imageUrl,
           link: req.body.link || '',
           position: parseInt(req.body.position),
           type: req.body.type.toUpperCase(),
           status: req.body.status.toUpperCase(),
-        },
-      });
-  
-      res.status(201).json({ banner });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to add banner',details: error.message });
-    }
-  };
-  
-  export const updateBanner = async (req, res) => {
-    try {
-      const { id } = req.params;
-  
-      // Find existing banner
-      const existingBanner = await prisma.banner.findUnique({ where: { id: Number(id) } });
-      if (!existingBanner) {
-        return res.status(404).json({ error: 'Banner not found' });
-      }
-  
-      // Validate request body
-      const { error } = bannerUpdateSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json({ errors: error.details });
-      }
-  
-      // Prepare update data
-      const data = {};
-  
-      if (req.body.link !== undefined) data.link = req.body.link;
-      if (req.body.position !== undefined) data.position = parseInt(req.body.position);
-      if (req.body.type !== undefined) data.type = req.body.type.toUpperCase();
-      if (req.body.status !== undefined) data.status = req.body.status.toUpperCase();
-      if (req.file) data.imageUrl = `/home/ubuntu/uploads/${req.file.filename}`;
-  
-      // Update banner
-      const updatedBanner = await prisma.banner.update({
-        where: { id: Number(id) },
-        data,
-      });
-  
-      res.json({ banner: updatedBanner });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update banner' });
-    }
-  };
-  
+      };
+      console.log('Creating banner with data:', bannerData);
 
-// Delete a banner
+      const banner = await prisma.banner.create({
+          data: bannerData,
+      });
+
+      console.log('Banner created:', banner);
+      res.status(201).json({ banner });
+      console.log('Response sent');
+  } catch (error) {
+      console.error('Prisma error:', error);
+      res.status(500).json({ error: 'Failed to create banner', details: error.message });
+  }
+};
+export const updateBanner = async (req, res) => {
+    try {
+        // Log incoming data for debugging
+        console.log('req.body:', req.body);
+        console.log('req.files:', req.files);
+
+        const { id } = req.params;
+
+        const existingBanner = await prisma.banner.findUnique({ where: { id: Number(id) } });
+        if (!existingBanner) {
+            return res.status(404).json({ error: 'Banner not found' });
+        }
+
+        const { error } = bannerUpdateSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ errors: error.details });
+        }
+
+        const data = {};
+        if (req.body.link !== undefined) data.link = req.body.link;
+        if (req.body.position !== undefined) data.position = parseInt(req.body.position);
+        if (req.body.type !== undefined) data.type = req.body.type.toUpperCase();
+        if (req.body.status !== undefined) data.status = req.body.status.toUpperCase();
+        if (req.files && req.files.length > 0) data.imageUrl = path.join('/uploads', req.files[0].filename);
+
+        const updatedBanner = await prisma.banner.update({
+            where: { id: Number(id) },
+            data,
+        });
+
+        res.json({ banner: updatedBanner });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update banner', details: error.message });
+    }
+};
+
 export const deleteBanner = async (req, res) => {
     try {
         const { id } = req.params;
+
+        const existingBanner = await prisma.banner.findUnique({ where: { id: Number(id) } });
+        if (!existingBanner) {
+            return res.status(404).json({ error: 'Banner not found' });
+        }
 
         await prisma.banner.delete({
             where: { id: Number(id) },
@@ -109,6 +113,6 @@ export const deleteBanner = async (req, res) => {
 
         res.json({ message: "Banner deleted successfully" });
     } catch (error) {
-        res.status(500).json({ error: "Failed to delete banner" });
+        res.status(500).json({ error: "Failed to delete banner", details: error.message });
     }
 };

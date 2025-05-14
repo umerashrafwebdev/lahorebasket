@@ -1,6 +1,6 @@
 import express from "express";
 import upload from '../middlewares/upload.js';  // Import the upload middleware
-import { addProduct, getProducts, getProduct, updateProduct, deleteProduct } from "../controllers/products.controller.js";
+import { addProduct, getProducts, getProduct, updateProduct, deleteProduct,getProductByVariantId } from "../controllers/products.controller.js";
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.get("/", getProducts);
 
 // Get a single product by ID
 router.get("/:id", getProduct);
-
+router.get('/by-variant/:variantId', getProductByVariantId);
 // Update product details
 router.put("/:id", upload.array("images", 5), updateProduct);
 
